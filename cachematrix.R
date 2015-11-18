@@ -14,8 +14,10 @@
 makeCacheMatrix <- function(x = matrix()) {
       m <- NULL               # m is a flag: NULL if cache value is not valid.
       set <- function(y) {    # Function set changes value of input matrix and
-            x <<- y           # resets flag m.  The x and m affected are in the 
+         if (!identical(y, x)) {   # resets flag m IF matrix is not the same as
+            x <<- y           # previous one.  The x and m affected are in the 
             m <<- NULL        # makeCacheMatrix scope.
+         }
       }
       get <- function() x     # Function get retrieves the value of the input
                               # matrix for which the inverse will be returned.
@@ -51,12 +53,13 @@ testcode <- function() {
       #source("cachematrix.R")
       #
       # generate matrix, and the inverse of the matrix.
-      size <- 1000 # size of the matrix edge, don't make this too big
+      size <- 2000 # size of the matrix edge, don't make this too big
       mymatrix <- matrix(rnorm(size^2), nrow=size, ncol=size)
       mymatrix.inverse <- solve(mymatrix)
       #
       # now solve the matrix via the cache-method
       #
+      Rprof()
       special.matrix   <- makeCacheMatrix(mymatrix)
       #
       # this should take long, since it's the first go
@@ -75,7 +78,6 @@ testcode <- function() {
       print("The execution times for each approach:")
       print(end1)
       print(end2)
-      
       
       ## Track what happens when you modify the contents of the matrix:
       #First create a new matrix:
@@ -96,6 +98,21 @@ testcode <- function() {
       print("You should now see 'getting cached data':")
       special.solved.4 = cacheSolve(special.matrix)
       
-      print("This should return TRUE:")
+      print("Cached inverse == original inverse; This should return TRUE:")
       print(identical(mymatrix2.inverse, special.solved.4))
+      
+      print("Track what happens when you copy the input matrix:")
+      #First copy the last input matrix:
+      mymatrix5 <- mymatrix2
+      
+      #Then re-set the contents of the special matrix to the same thing:
+      special.matrix$set(mymatrix5)
+      #
+      # this should be lightning fast again:
+      start2 <- Sys.time ()
+      special.solved.5 <- cacheSolve(special.matrix)
+      end2 = Sys.time () - start2
+      print(end2)
+      
+      Rprof(NULL)
 }
